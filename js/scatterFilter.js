@@ -6,8 +6,6 @@ var margin = {top: 20, right: 20, bottom: 30, left: 40},
     width = 960 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
 
-var brush, brushCell;
-
 d3.json("data/msas.json", function(error, data) {
     if (error) throw error;
     dataSet = data.data.data;
@@ -15,12 +13,18 @@ d3.json("data/msas.json", function(error, data) {
     varlabs = d3.map(data.variableLabels);
     vallabs = d3.map(data.valueLabels);
     graphVarNames = varnames.filter(function(d) { return !data.variableIsString[d]; });
-
+    var control = d3.select("body").append("div").attr("id", "controls");
+    selectY = control.append("span")
+        .attr("class", "col-xs-12 col-sm-offset-1 col-sm-3")
+        .attr("id", "yvspan")
+        .text("Y-Axis Variable : ")
+        .append("select")
+        .attr("id", "yvar")
+        .attr("onchange", "scatter()");
 
     var xVarNames = graphVarNames;
-    selectX = d3.select("body").append("div")
-                .append("span")
-                .attr("class", "col-xs-12 col-md-4")
+    selectX = control.append("span")
+                .attr("class", "col-xs-12 col-sm-3")
                 .text("X-Axis Variable : ")
                 .append("select")
                 .attr("id", "xvar")
@@ -32,20 +36,12 @@ d3.json("data/msas.json", function(error, data) {
         .attr("value", function(d) { return d; })
         .text(function(d) { return varlabs.get(d); });
 
-    selectY = d3.select("div")
-        .append("span")
-        .attr("class", "col-xs-12 col-md-4")
-        .attr("id", "yvspan")
-        .text("Y-Axis Variable : ")
-        .append("select")
-        .attr("id", "yvar")
-        .attr("onchange", "scatter()");
-
-    d3.select("div")
-        .append("span")
-        .attr("class", "col-xs-12 col-md-4")
+    control.append("span")
+        .attr("class", "col-xs-12 col-sm-offset-1 col-sm-2")
         .attr("id", "dfiltername")
         .text("Show Schools Only? ");
+
+    d3.select("div").append("span").attr("class", "col-sm-offset-3");
 
     distfilter = d3.selectAll("span#dfiltername").append("input")
         .attr("id", "distfilter")
@@ -53,14 +49,12 @@ d3.json("data/msas.json", function(error, data) {
         .attr("value", "dfilter")
         .property("checked", true);
 
+
+
+    xLoad();
     d3.selectAll("input#distfilter").on("change", function() {
         scatter();
     });
-
-    xLoad();
-
-
-
 
     // var sel = document.getElementById('xvar');
     // console.log(sel.options[sel.selectedIndex].value)
@@ -70,55 +64,60 @@ d3.json("data/msas.json", function(error, data) {
 
 function scatter() {
 
+    d3.select("div#vizData_wrapper").remove();
     var svg = d3.selectAll("svg"),
         group = "offgrade";
 
     svg.remove();
-
-    var filt = d3.select("input#distfilter").property("checked");
-    var xvar = d3.select("select#xvar").selectAll("option")[0][d3.select("select#xvar").property("selectedIndex")].value,
-        yvar = d3.select("select#yvar").selectAll("option")[0][d3.select("select#yvar").property("selectedIndex")].value;
+    var filt = d3.select("input#distfilter").property("checked"),
+    xvar = d3.select("select#xvar").selectAll("option")[0][d3.select("select#xvar").property("selectedIndex")].value,
+    yvar = d3.select("select#yvar").selectAll("option")[0][d3.select("select#yvar").property("selectedIndex")].value;
 
     dataSet.forEach(function(d) {
         d[xvar] = +d[xvar];
         d[yvar] = +d[yvar];
     });
 
-/*    dataSet.filter(function(d) {
-        if ((d[xvar] != null && d[yvar] != null) &&
-            (d[xvar] !== "null" && d[yvar] !== "null") &&
-            (d[xvar] != undefined && d[yvar] != undefined) &&
-            (!isNaN(d[xvar]) && !isNaN(d[yvar]))) return d;
-    });
-*/
     var xValue = function(d) { if (!isNaN(d[xvar]) && d[xvar] !== null) return d[xvar];}, // data -> value
         xScale = d3.scale.linear().range([0, width]), // value -> display
         xMap = function(d) { return xScale(xValue(d));}, // data -> display
-        xAxis = d3.svg.axis().scale(xScale).orient("bottom");
-
-    // setup y
-    var yValue = function(d) { if (!isNaN(d[yvar]) && d[yvar] !== null) return d[yvar];}, // data -> value
+        xAxis = d3.svg.axis().scale(xScale).orient("bottom"),
+        yValue = function(d) { if (!isNaN(d[yvar]) && d[yvar] !== null) return d[yvar];}, // data -> value
         yScale = d3.scale.linear().range([height, 0]), // value -> display
         yMap = function(d) { return yScale(yValue(d));}, // data -> display
-        yAxis = d3.svg.axis().scale(yScale).orient("left");
+        yAxis = d3.svg.axis().scale(yScale).orient("left"),
+        gdata = dataSet.filter(function(d) { if (!isNaN(d[xvar]) && !isNaN(d[yvar])) {
+                                    if (filt && d["schnm"] != "District Level") return d;
+                                        else if (filt && d["schnm"] == "District Level") return null;
+                                        else return d;
+                                    }
+                                });
 
-    var cValue = function(d) { return d[group];},
+    xScale.domain([d3.min(dataSet, xValue) - 1, d3.max(dataSet, xValue) + 1]);
+    yScale.domain([d3.min(dataSet, yValue) - 1, d3.max(dataSet, yValue) + 1]);
+
+    var cValue = function(d) { return d[group]; },
         color = d3.scale.category10();
 
     // add the graph canvas to the body of the webpage
-    svg = d3.select("body").append("div").append("svg")
-        .attr("class", "col-xs-12 col-sm-8 col-md-8 col-lg-8")
-//        .attr("width", width + margin.left + margin.right)
+    svg = d3.select("body").append("div").attr("class", "col-sm-offset-1 col-sm-11").attr("id", "graphArea").append("svg")
+        .attr("class", "col-xs-12 col-sm-offset-1 col-sm-7")
+        .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+    d3.select("body")
+        .append("h1").attr("class", "col-sm-offset-1 col-sm-8").text("Vizualization Data");
+    d3.select("body")
+        .append("p").attr("class", "col-sm-offset-1 col-sm-8").text("You can also browse all of the data currently being used in the graph above with this table.  Click on any of the buttons at the top of the table to remove/show those columns, click on the column headers to sort the data, or enter terms to search for across all the fields in the data in the text box at the top.  You can also adjust the number of rows by clicking on the dropdown menu above the table and on the left side of the page.");
+
+
     var tooltip = d3.select("body").append("div")
-        .attr("class", "tooltip")
+        .attr("class", "tooltip col-sm-2")
         .style("opacity", 40);
 
-    xScale.domain([d3.min(dataSet, xValue) - 1, d3.max(dataSet, xValue) + 1]);
-    yScale.domain([d3.min(dataSet, yValue) - 1, d3.max(dataSet, yValue) + 1]);
+    tooltip.append("div").attr("class", "col-sm-10");
 
     svg.append("g")
         .attr("class", "x axis")
@@ -143,14 +142,8 @@ function scatter() {
         .text(function() { return varlabs.get(yvar); });
 
     svg.selectAll(".dot")
-        .data(dataSet)
+        .data(gdata)
         .enter().append("circle")
-        .filter(function(d) { if (!isNaN(d[xvar]) && !isNaN(d[yvar])) {
-            if (filt && d["schnm"] != "District Level") return d;
-            else if (filt && d["schnm"] == "District Level") return null;
-            else return d;
-        }
-        })
         .attr("class", "dot")
         .attr("r", 3.5)
         .attr("cx", xMap)
@@ -195,6 +188,28 @@ function scatter() {
         .style("text-anchor", "end")
         .text(function(d) { return vallabs.get(group)[d];});
 
+    var table_plot = makeTable()
+        .datum(gdata)
+        .filterCols(graphVarNames.filter(function(d) {
+            if (d !== xvar && d !== yvar) return d;
+        }));
+
+    //.attr("class", "col-sm-offset-1 col-sm-7")
+    d3.select("body").call(table_plot);
+
+    table_plot.on('highlight', function(data, on_off){
+        if(on_off){//if the data is highlighted
+            d3.select('#highlighted');
+        }
+    });
+    table_plot.on('select', function(data, on_off){
+        if(on_off){//if the data is highlighted
+            d3.select('#selected');
+        }
+    });
+
+//    d3.select("div#vizData_wrapper").attr("class", "col-sm-offset-1 col-sm-8").append("div").attr("class", "col-sm-offset-3");
+//    d3.select("table#vizData").style("width", "100%");
 }
 
 function xLoad() {
@@ -213,9 +228,7 @@ function xLoad() {
 
     scatter();
 
-
 }
-
 
 function xChange() {
     var yvars = graphVarNames.filter(function(d, i) {
@@ -231,8 +244,9 @@ function xChange() {
         .attr("value", function(d) { return d; })
         .text(function(d) { return varlabs.get(d); });
 
-
     scatter();
 
 }
+
+
 

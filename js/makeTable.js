@@ -22,10 +22,10 @@ function makeTable() {
 
         // Create and select table skeleton
         var tableSelect = d3.select("body").append("table")
-//            .attr("class", "display")
-            // Generally, hard-coding Ids is wrong, because then 
-            // you can't have 2 table plots in one page (both will have the same id).
-            // I will leave it for now for simplicity. TODO: remove hard-coded id.
+        //            .attr("class", "display")
+        // Generally, hard-coding Ids is wrong, because then 
+        // you can't have 2 table plots in one page (both will have the same id).
+        // I will leave it for now for simplicity. TODO: remove hard-coded id.
             .attr("id", "vizData")
             .style("visibility", "hidden"); // Hide table until style loads;
 
@@ -162,7 +162,6 @@ function makeTable() {
 
         return _table;
     };
-
 
     // This allows other objects to 'listen' to events dispatched by the _table object.
     d3.rebind(_table, dispatcher, 'on');

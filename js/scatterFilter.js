@@ -1,7 +1,7 @@
 /**
  * Created by billy on 5/18/16.
  */
-var dataSet, varnames, varlabs, vallabs, selectX, selectY, distfilter, graphVarNames;
+var dataSet, varnames, varlabs, vallabs, selectX, selectY, distfilter, graphVarNames, selected, ddid, list;
 var margin = {top: 20, right: 20, bottom: 30, left: 40},
     width = 960 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
@@ -20,22 +20,30 @@ d3.json("data/msas.json", function(error, data) {
         .text("Y-Axis Variable : ")
         .append("select")
         .attr("id", "yvar")
-        .attr("onchange", "scatter()");
+        .attr("onchange", "dChange('yvar')");
 
-    var xVarNames = graphVarNames;
-    selectX = control.append("span")
-                .attr("class", "col-xs-12 col-sm-3")
-                .text("X-Axis Variable : ")
-                .append("select")
-                .attr("id", "xvar")
-                .attr("onchange", "xChange()");
-
-    selectX.selectAll("option")
-        .data(xVarNames)
+    /*
+    selectY.selectAll("option")
+        .data(graphVarNames)
         .enter().append("option")
         .attr("value", function(d) { return d; })
         .text(function(d) { return varlabs.get(d); });
+    */
 
+    selectX = control.append("span")
+        .attr("class", "col-xs-12 col-sm-3")
+        .text("X-Axis Variable : ")
+        .append("select")
+        .attr("id", "xvar")
+        .attr("onchange", "dChange('xvar')");
+
+    /*
+    selectX.selectAll("option")
+        .data(graphVarNames)
+        .enter().append("option")
+        .attr("value", function(d) { return d; })
+        .text(function(d) { return varlabs.get(d); });
+    */
     control.append("span")
         .attr("class", "col-xs-12 col-sm-offset-1 col-sm-2")
         .attr("id", "dfiltername")
@@ -49,29 +57,30 @@ d3.json("data/msas.json", function(error, data) {
         .attr("value", "dfilter")
         .property("checked", true);
 
-
-
-    xLoad();
+    //xLoad();
+    dChange("yvar");
+    var xrem = $("#xvar").val();
+    $("#yvar option[value=" + xrem + "]").remove();
     d3.selectAll("input#distfilter").on("change", function() {
         scatter();
     });
 
-    // var sel = document.getElementById('xvar');
-    // console.log(sel.options[sel.selectedIndex].value)
+
 
 });
 
-
 function scatter() {
 
+    d3.select("div#graphArea").remove();
     d3.select("div#vizData_wrapper").remove();
+    d3.select("div#vdtab").remove();
     var svg = d3.selectAll("svg"),
         group = "offgrade";
 
     svg.remove();
     var filt = d3.select("input#distfilter").property("checked"),
-    xvar = d3.select("select#xvar").selectAll("option")[0][d3.select("select#xvar").property("selectedIndex")].value,
-    yvar = d3.select("select#yvar").selectAll("option")[0][d3.select("select#yvar").property("selectedIndex")].value;
+        xvar = d3.select("select#xvar").selectAll("option")[0][d3.select("select#xvar").property("selectedIndex")].value,
+        yvar = d3.select("select#yvar").selectAll("option")[0][d3.select("select#yvar").property("selectedIndex")].value;
 
     dataSet.forEach(function(d) {
         d[xvar] = +d[xvar];
@@ -87,11 +96,11 @@ function scatter() {
         yMap = function(d) { return yScale(yValue(d));}, // data -> display
         yAxis = d3.svg.axis().scale(yScale).orient("left"),
         gdata = dataSet.filter(function(d) { if (!isNaN(d[xvar]) && !isNaN(d[yvar])) {
-                                    if (filt && d["schnm"] != "District Level") return d;
-                                        else if (filt && d["schnm"] == "District Level") return null;
-                                        else return d;
-                                    }
-                                });
+            if (filt && d["schnm"] != "District Level") return d;
+            else if (filt && d["schnm"] == "District Level") return null;
+            else return d;
+        }
+        });
 
     xScale.domain([d3.min(dataSet, xValue) - 1, d3.max(dataSet, xValue) + 1]);
     yScale.domain([d3.min(dataSet, yValue) - 1, d3.max(dataSet, yValue) + 1]);
@@ -100,24 +109,22 @@ function scatter() {
         color = d3.scale.category10();
 
     // add the graph canvas to the body of the webpage
-    svg = d3.select("body").append("div").attr("class", "col-sm-offset-1 col-sm-11").attr("id", "graphArea").append("svg")
-        .attr("class", "col-xs-12 col-sm-offset-1 col-sm-7")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    svg = d3.select("body").append("div").attr("class", "col-sm-offset-1 col-sm-8").attr("id", "graphArea").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    d3.select("body")
-        .append("h1").attr("class", "col-sm-offset-1 col-sm-8").text("Vizualization Data");
-    d3.select("body")
-        .append("p").attr("class", "col-sm-offset-1 col-sm-8").text("You can also browse all of the data currently being used in the graph above with this table.  Click on any of the buttons at the top of the table to remove/show those columns, click on the column headers to sort the data, or enter terms to search for across all the fields in the data in the text box at the top.  You can also adjust the number of rows by clicking on the dropdown menu above the table and on the left side of the page.");
-
+    d3.select("body").append("div").attr("id", "vdtab").attr("class", "col-sm-offset-1 col-sm-8");
+    var header = [ 'Vizualization Data' ],
+        para = [ 'You can also browse all of the data currently being used in the graph above with this table.  Click on any of the buttons at the top of the table to remove/show those columns, click on the column headers to sort the data, or enter terms to search for across all the fields in the data in the text box at the top.  You can also adjust the number of rows by clicking on the dropdown menu above the table and on the left side of the page.' ],
+        h1 = d3.select("div#vdtab").selectAll("h1").data(header),
+        vtpara = d3.select("div#vdtab").selectAll("p").data(para);
+    h1.enter().append("h1").text(function(d) { return d; });
+    vtpara.enter().append("p").text(function(d) { return d; });
 
     var tooltip = d3.select("body").append("div")
-        .attr("class", "tooltip col-sm-2")
-        .style("opacity", 40);
-
-    tooltip.append("div").attr("class", "col-sm-10");
+                    .attr("class", "tooltip");
 
     svg.append("g")
         .attr("class", "x axis")
@@ -152,10 +159,9 @@ function scatter() {
         .on("mouseover", function(d) {
             tooltip.transition()
                 .duration(200)
-                .style("opacity", .9);
-            tooltip.html(varlabs.get("distnm") + " : " + d["distnm"] + "<br/>" +
-                        varlabs.get("schnm") + " : " + d["schnm"] + "<br/>" +
-                varlabs.get(xvar) + " = " + xValue(d) + ", " +
+                .style({ "opacity": .9, "visible" : true });
+            tooltip.html(d["distnm"] + '&nbsp;&nbsp; - &nbsp;&nbsp;' + d["schnm"] + "<br/>" +
+                varlabs.get(xvar) + " = " + xValue(d) + '<br/>' +
                 varlabs.get(yvar) + " = " + yValue(d))
                 .style("left", (d3.event.pageX + 5) + "px")
                 .style("top", (d3.event.pageY - 28) + "px");
@@ -163,7 +169,7 @@ function scatter() {
         .on("mouseout", function(d) {
             tooltip.transition()
                 .duration(500)
-                .style("opacity", 0);
+                .style({ "opacity": 0, "visible": "hidden" });
         });
 
 
@@ -194,7 +200,6 @@ function scatter() {
             if (d !== xvar && d !== yvar) return d;
         }));
 
-    //.attr("class", "col-sm-offset-1 col-sm-7")
     d3.select("body").call(table_plot);
 
     table_plot.on('highlight', function(data, on_off){
@@ -212,19 +217,28 @@ function scatter() {
 //    d3.select("table#vizData").style("width", "100%");
 }
 
+function selectedVars(id) {
+         selected = d3.map({"xvar" : $("#xvar").val(), "yvar" : $("#yvar").val()}),
+            ddid = selected.keys().filter(function(d) { if (d !== id) return true; }),
+            lists = {"yvar" : graphVarNames.filter(function(d) { return d !== selected.get("xvar") && d !== selected.get("yvar"); }),
+                    "xvar" : graphVarNames.filter(function(d) { return d !== selected.get("yvar") && d !== selected.get("xvar"); }) };
+        return {"selected" : selected, "ddid" : ddid, "lists" : lists };
+}
+
 function xLoad() {
-    var yvars = graphVarNames.filter(function(d, i) {
-        if (i !== d3.selectAll("select#xvar").property("selectedIndex"))
-            return d;
-    });
 
-    d3.select("select#yvar").selectAll("option").remove();
+    // d3.select("select#xvar").selectAll("option").remove();
 
-    selectY.selectAll("option")
-            .data(yvars)
-            .enter().append("option")
-            .attr("value", function(d) { return d; })
-            .text(function(d) { return varlabs.get(d); });
+    var listData = selectedVars("xvar"),
+        xdd = d3.select("select#xvar")
+                .selectAll("option")
+                .data(listData.lists.xvar);
+
+    xdd.enter().append("option")
+        .attr("value", function(d) { return d; })
+        .text(function(d) { return varlabs.get(d); });
+
+    xdd.exit().remove();
 
     scatter();
 
@@ -248,5 +262,34 @@ function xChange() {
 
 }
 
+function dChange(id) {
+
+    var varlist = selectedVars(id),
+        xrem = varlist.selected.get("xvar"),
+        yrem = varlist.selected.get("yvar"),
+        xv = d3.select("#xvar").selectAll("option").data(varlist.lists.xvar),
+        yv = d3.select("#yvar").selectAll("option").data(varlist.lists.yvar);
+    console.log(varlist.lists.xvar);
+    console.log(varlist.lists.yvar);
+    /*
+    if (id === "xvar") {
+        $("#xvar option[value=" + yrem + "]").remove();
+    }
+    else {
+        $("#yvar option[value=" + xrem + "]").remove();
+    }
+    */
+    xv.enter().append("option")
+        .attr("value", function(d) { return d; })
+        .text(function(d) { return varlabs.get(d); });
+
+    yv.enter().append("option")
+        .attr("value", function(d) { return d; })
+        .text(function(d) { return varlabs.get(d); });
+
+
+    scatter();
+
+}
 
 

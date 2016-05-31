@@ -22,7 +22,7 @@ function makeTable() {
 
         // Create and select table skeleton
         var tableSelect = d3.select("body").append("table")
-        //            .attr("class", "display")
+                    .attr("class", "display")
         // Generally, hard-coding Ids is wrong, because then 
         // you can't have 2 table plots in one page (both will have the same id).
         // I will leave it for now for simplicity. TODO: remove hard-coded id.
@@ -71,35 +71,6 @@ function makeTable() {
                 buttons: [ 'columnsToggle' ],
                 select: true
             });
-
-            table.columns().eq( 0 ).each( function ( colIdx ) {
-                $( 'input', table.column( colIdx ).header() ).on( 'keyup change', function (ev) {
-                    if (ev.keyCode == 13) { //only on enter keypress (code 13)
-                        table.column(colIdx)
-                            .search (this.value, true, false)
-                            .draw();
-                    }
-                } );
-
-                $('input', table.column(colIdx).header()).on('click', function(e) {
-                    e.stopPropagation();
-                });
-
-            } );
-
-
-            // Apply the search
-            table.columns().every( function () {
-                var that = this;
-
-                $( 'input', this.footer() ).on( 'keyup change', function () {
-                    if ( that.search() !== this.value ) {
-                        that
-                            .search( this.value )
-                            .draw();
-                    }
-                } );
-            } );
 
             $("#vizData tbody")
                 .on( 'mouseover', 'tr', function () { highlight(this, true); } )

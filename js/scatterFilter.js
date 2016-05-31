@@ -20,30 +20,27 @@ d3.json("data/msas.json", function(error, data) {
         .text("Y-Axis Variable : ")
         .append("select")
         .attr("id", "yvar")
-        .attr("onchange", "dChange('yvar')");
+        .attr("onchange", "scatter()");
 
-    /*
     selectY.selectAll("option")
         .data(graphVarNames)
         .enter().append("option")
         .attr("value", function(d) { return d; })
         .text(function(d) { return varlabs.get(d); });
-    */
 
     selectX = control.append("span")
         .attr("class", "col-xs-12 col-sm-3")
         .text("X-Axis Variable : ")
         .append("select")
         .attr("id", "xvar")
-        .attr("onchange", "dChange('xvar')");
+        .attr("onchange", "scatter()");
 
-    /*
     selectX.selectAll("option")
         .data(graphVarNames)
         .enter().append("option")
         .attr("value", function(d) { return d; })
         .text(function(d) { return varlabs.get(d); });
-    */
+
     control.append("span")
         .attr("class", "col-xs-12 col-sm-offset-1 col-sm-2")
         .attr("id", "dfiltername")
@@ -54,26 +51,22 @@ d3.json("data/msas.json", function(error, data) {
     distfilter = d3.selectAll("span#dfiltername").append("input")
         .attr("id", "distfilter")
         .attr("type", "checkbox")
-        .attr("value", "dfilter")
-        .property("checked", true);
+        .attr("value", "dfilter");
+    distfilter.property("checked", true);
 
-    //xLoad();
-    dChange("yvar");
-    var xrem = $("#xvar").val();
-    $("#yvar option[value=" + xrem + "]").remove();
     d3.selectAll("input#distfilter").on("change", function() {
         scatter();
     });
 
-
-
+    scatter();
 });
 
 function scatter() {
 
-    d3.select("div#graphArea").remove();
-    d3.select("div#vizData_wrapper").remove();
-    d3.select("div#vdtab").remove();
+    d3.select("div#graphArea").remove(),
+    d3.select(".dataTables_wrapper").remove(),
+    d3.select("div#vdtab").remove(),
+    d3.select(".tooltip").remove();
     var svg = d3.selectAll("svg"),
         group = "offgrade";
 
@@ -218,10 +211,15 @@ function scatter() {
 }
 
 function selectedVars(id) {
-         selected = d3.map({"xvar" : $("#xvar").val(), "yvar" : $("#yvar").val()}),
+
+        selected = d3.map({"yvar" : d3.select("#yvar").property("value"), "xvar" : d3.select("#xvar").property("value") });
+        if (selected.get("yvar") === selected.get("xvar")) {
+            d3.select("#xvar option[value='" + selected.get("yvar") + "']").remove();
+        }
+        selected = d3.map({"yvar" : d3.select("#yvar").property("value"), "xvar" : d3.select("#xvar").property("value") }),
             ddid = selected.keys().filter(function(d) { if (d !== id) return true; }),
-            lists = {"yvar" : graphVarNames.filter(function(d) { return d !== selected.get("xvar") && d !== selected.get("yvar"); }),
-                    "xvar" : graphVarNames.filter(function(d) { return d !== selected.get("yvar") && d !== selected.get("xvar"); }) };
+            lists = {"yvar" : graphVarNames.filter(function(d) { return d !== selected.get("xvar"); }),
+                    "xvar" : graphVarNames.filter(function(d) { return d !== selected.get("yvar"); }) };
         return {"selected" : selected, "ddid" : ddid, "lists" : lists };
 }
 
@@ -245,51 +243,18 @@ function xLoad() {
 }
 
 function xChange() {
-    var yvars = graphVarNames.filter(function(d, i) {
-        if (i !== d3.selectAll("select#xvar").property("selectedIndex"))
-            return d;
-    });
-
-    d3.select("select#yvar").selectAll("option").remove();
-
-    selectY.selectAll("option")
-        .data(yvars)
-        .enter().append("option")
-        .attr("value", function(d) { return d; })
-        .text(function(d) { return varlabs.get(d); });
-
-    scatter();
-
-}
-
-function dChange(id) {
-
-    var varlist = selectedVars(id),
-        xrem = varlist.selected.get("xvar"),
-        yrem = varlist.selected.get("yvar"),
-        xv = d3.select("#xvar").selectAll("option").data(varlist.lists.xvar),
-        yv = d3.select("#yvar").selectAll("option").data(varlist.lists.yvar);
-    console.log(varlist.lists.xvar);
-    console.log(varlist.lists.yvar);
-    /*
-    if (id === "xvar") {
-        $("#xvar option[value=" + yrem + "]").remove();
-    }
-    else {
-        $("#yvar option[value=" + xrem + "]").remove();
-    }
-    */
-    xv.enter().append("option")
-        .attr("value", function(d) { return d; })
-        .text(function(d) { return varlabs.get(d); });
-
-    yv.enter().append("option")
-        .attr("value", function(d) { return d; })
-        .text(function(d) { return varlabs.get(d); });
+    var varlist = selectedVars("xvar"),
+        xrem = varlist.selected.get("yvar"),
+        yrem = varlist.selected.get("xvar"),
+        xv = d3.select("#xvar").selectAll("option"),
+        yv = d3.select("#yvar").selectAll("option");
+    yv.data(xrem).exit().remove();
 
 
     scatter();
 
 }
+
+
 
 

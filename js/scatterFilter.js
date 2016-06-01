@@ -72,8 +72,8 @@ function scatter() {
 
     svg.remove();
     var filt = d3.select("input#distfilter").property("checked"),
-        xvar = d3.select("select#xvar").selectAll("option")[0][d3.select("select#xvar").property("selectedIndex")].value,
-        yvar = d3.select("select#yvar").selectAll("option")[0][d3.select("select#yvar").property("selectedIndex")].value;
+        xvar = d3.select("select#xvar").property("value"),
+        yvar = d3.select("select#yvar").property("value");
 
     dataSet.forEach(function(d) {
         d[xvar] = +d[xvar];

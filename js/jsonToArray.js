@@ -95,7 +95,7 @@ function jsonToArray(jsonData, toNumeric, stdMissing) {
  */
 function getColumn(arr, n) {
     return arr.map(x => x[n]);
-}
+};
 
 /**
  * Function used to access values from JSON data
@@ -105,12 +105,12 @@ function getColumn(arr, n) {
  * @returns A 1D array of values 
  */
 function getColumnFromJSON(json, col, removeNull) {
-    if (removeNull) return json.map(x => x[col]).filter(function(d) { 
-        if (d !== "null" && d !== null) 
-            return true; 
-        else 
-            return false; 
-    });
-    else 
+    if (removeNull) {
+        return json.map(x => x[col]).filter(function(d) {
+        if (d !== "null" && d !== null) return true;
+        else return false; 
+        });
+    } else {
         return json.map(x => x[col]);
+    }
 }

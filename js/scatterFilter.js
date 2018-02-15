@@ -1,5 +1,7 @@
 /**
  * Created by billy on 5/18/16.
+ * Some of this script may have also been derived from the Gist located at:
+ * http://bl.ocks.org/ahmohamed/4c4980f31abdef64e7e2
  */
 var dataSet, varnames, varlabs, vallabs, selectX, selectY, distfilter, graphVarNames, selected, ddid, list;
 var margin = {top: 20, right: 20, bottom: 30, left: 40},
